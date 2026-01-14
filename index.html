@@ -1685,41 +1685,58 @@
                 }
             };
 
-            // Detect face
-            const detectFace = (video, canvas, mode) => {
-                const context = canvas.getContext('2d');
-                const interval = setInterval(async () => {
-                    let isPlaying;
-                    if (mode === 'register') isPlaying = isVideoRegPlaying;
-                    else if (mode === 'login') isPlaying = isVideoLoginPlaying;
-                    else if (mode === 'attendance') isPlaying = isVideoAttendancePlaying;
-                    if (!isPlaying) {
-                        clearInterval(interval);
-                        return;
-                    }
-                    if (video.paused || video.ended) {
-                        clearInterval(interval);
-                        return;
-                    }
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-                    if (detections) {
-                        const resizedDetections = faceapi.resizeResults(detections, { width: canvas.width, height: canvas.height });
-                        faceapi.draw.drawDetections(canvas, resizedDetections);
-                        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-                        if (mode === 'register') registerBtn.disabled = false;
-                        else if (mode === 'login' && Object.keys(registeredUsers).length > 0) loginBtn.disabled = false;
-                        else if (mode === 'attendance' && loggedInUser) markAttendanceBtn.disabled = false;
-                    } else if (mode === 'register') {
-                        registerBtn.disabled = true;
-                    } else if (mode === 'attendance') {
-                        markAttendanceBtn.disabled = true;
-                    }
-                }, 200);
-                if (mode === 'register') regInterval = interval;
-                else if (mode === 'login') loginInterval = interval;
-                else if (mode === 'attendance') attendanceInterval = interval;
-            };
+          const detectFace = (video, canvas, mode) => {
+    const context = canvas.getContext('2d');
+    livenessPoints = 0; 
+    
+    const interval = setInterval(async () => {
+        let isPlaying;
+        if (mode === 'register') isPlaying = isVideoRegPlaying;
+        else if (mode === 'login') isPlaying = isVideoLoginPlaying;
+        else if (mode === 'attendance') isPlaying = isVideoAttendancePlaying;
+
+        if (!isPlaying || video.paused || video.ended) {
+            clearInterval(interval);
+            return;
+        }
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+            .withFaceLandmarks()
+            .withFaceExpressions()
+            .withFaceDescriptor();
+
+        if (detections) {
+            const resizedDetections = faceapi.resizeResults(detections, { width: canvas.width, height: canvas.height });
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            
+            // Liveness Logic: Compare current face texture/position to the last frame
+            if (lastDescriptor) {
+                const distance = faceapi.euclideanDistance(detections.descriptor, lastDescriptor);
+                // Photos have almost 0 distance. Real humans have micro-movements between 0.01 and 0.15
+                if (distance > 0.01 && distance < 0.15) {
+                    livenessPoints++;
+                }
+            }
+            lastDescriptor = detections.descriptor;
+
+            // UI Feedback
+            const btn = (mode === 'register' ? registerBtn : (mode === 'login' ? loginBtn : markAttendanceBtn));
+            
+            if (livenessPoints < 15) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner animate-spin mr-2"></i> Verifying Liveness (${Math.round((livenessPoints/15)*100)}%)`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = (mode === 'register' ? 'Capture & Register' : (mode === 'login' ? 'Authenticate' : 'Mark Attendance'));
+            }
+        }
+    }, 150);
+    
+    if (mode === 'register') regInterval = interval;
+    else if (mode === 'login') loginInterval = interval;
+    else if (mode === 'attendance') attendanceInterval = interval;
+};
 
             // Handle username input
             usernameInput.addEventListener('input', () => { registerBtn.disabled = usernameInput.value.trim() === ''; });
@@ -4211,6 +4228,7 @@
 </body>
 
 </html>
+
 
 
 
