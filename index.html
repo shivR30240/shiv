@@ -1742,7 +1742,8 @@
             usernameInput.addEventListener('input', () => { registerBtn.disabled = usernameInput.value.trim() === ''; });
 
             // Register button
-            registerBtn.addEventListener('click', async () => {
+        
+if (detections.expressions.happy < 0.5) { showMessage("Liveness Check: Please SMILE to register!"); return; } () => {
                 const username = usernameInput.value.trim();
                 if (!username) { showMessage("Enter username."); return; }
                 if (registeredUsers[username]) { showMessage("Username exists."); return; }
@@ -4228,6 +4229,7 @@
 </body>
 
 </html>
+
 
 
 
