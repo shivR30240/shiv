@@ -888,9 +888,15 @@
                                     <video id="video-attendance" class="block bg-black"></video>
                                     <canvas id="canvas-attendance" class="block"></canvas>
                                 </div>
+                                <div id="liveness-status" class="mb-2 text-center text-sm text-gray-400" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                                    <span id="liveness-status-text">Verifying you are live...</span>
+                                </div>
                                 <button id="mark-attendance-btn"
                                     class="w-full px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition transform hover:scale-105 shadow-lg"
-                                    disabled>Mark Attendance with Face Recognition</button>
+                                    disabled>
+                                    <span id="mark-attendance-btn-text">Mark Attendance with Face Recognition</span>
+                                </button>
                                 <div class="mt-8">
                                     <h3 class="text-xl font-semibold mb-4">Today's Attendance</h3>
                                     <div class="overflow-x-auto">
@@ -1365,27 +1371,110 @@
             </div>
         </nav>
         <div class="container mx-auto px-4 py-6">
-            <div class="bg-gray-800 p-6 rounded-lg shadow-md">
-                <h1 class="text-3xl font-bold mb-6">Admin Panel</h1>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-purple-900 p-4 rounded-lg">
-                        <h2 class="text-xl font-semibold mb-4">User Management</h2>
-                        <button id="view-users-btn"
-                            class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition">View
-                            Users</button>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold">Admin Panel</h1>
+                <button id="create-batch-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Create Batch
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- User Management Section -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-4">User Management</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Select User Type</label>
+                        <select id="user-type-select" class="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">-- Select Type --</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                        </select>
                     </div>
-                    <div class="bg-purple-900 p-4 rounded-lg">
-                        <h2 class="text-xl font-semibold mb-4">Attendance Reports</h2>
-                        <button id="generate-report-btn"
-                            class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition">Generate
-                            Report</button>
+
+                    <div class="mb-4" id="email-input-container" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Email Address</label>
+                        <input type="email" id="user-email-input" 
+                            placeholder="Enter email address"
+                            class="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                     </div>
-                    <div class="bg-purple-900 p-4 rounded-lg">
-                        <h2 class="text-xl font-semibold mb-4">System Settings</h2>
-                        <button id="edit-settings-btn"
-                            class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition">Edit
-                            Settings</button>
+
+                    <button id="add-user-btn" 
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg transition mb-4"
+                        disabled>
+                        <i class="fas fa-user-plus mr-2"></i>Add User
+                    </button>
+
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold mb-3">Registered Users</h3>
+                        <div class="space-y-2 max-h-64 overflow-y-auto" id="users-list">
+                            <!-- Users will be displayed here -->
+                        </div>
                     </div>
+                </div>
+
+                <!-- Batch Management Section -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-4">Batch Management</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Select Batch</label>
+                        <div class="flex gap-2 mb-2">
+                            <select id="batch-select" class="flex-1 px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="">-- Select or Create Batch --</option>
+                            </select>
+                            <button id="new-batch-name-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <input type="text" id="new-batch-name-input" 
+                            placeholder="Enter batch name (e.g., CS2021)"
+                            class="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 mb-2"
+                            style="display: none;">
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold mb-3">Select Students</h3>
+                        <div class="max-h-48 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-700" id="students-checkbox-list">
+                            <!-- Student checkboxes will be displayed here -->
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-400 mb-2">Selected Students</h3>
+                        <div class="min-h-16 max-h-32 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-700 flex flex-wrap gap-2" id="selected-students">
+                            <span class="text-gray-500 text-sm">No students selected</span>
+                        </div>
+                    </div>
+
+                    <button id="add-to-batch-btn" 
+                        class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition mb-4"
+                        disabled>
+                        <i class="fas fa-users mr-2"></i>Add Selected to Batch
+                    </button>
+
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold mb-3">Existing Batches</h3>
+                        <div class="space-y-2 max-h-64 overflow-y-auto" id="batches-list">
+                            <!-- Batches will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Admin Features -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div class="bg-purple-900 p-4 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">Attendance Reports</h2>
+                    <button id="generate-report-btn"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition">Generate
+                        Report</button>
+                </div>
+                <div class="bg-purple-900 p-4 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">System Settings</h2>
+                    <button id="edit-settings-btn"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition">Edit
+                        Settings</button>
                 </div>
             </div>
         </div>
@@ -1712,28 +1801,296 @@
                 });
             });
 
-            // Attendance mark button
+            // Liveness Detection Function
+            async function performLivenessCheck(video, duration = 3000) {
+                return new Promise(async (resolve) => {
+                    // Validate video input
+                    if (!video) {
+                        resolve({ isLive: false, reason: 'Video stream not available' });
+                        return;
+                    }
+
+                    const frames = [];
+                    const startTime = Date.now();
+                    const checkInterval = 200; // Check every 200ms
+                    let lastFacePosition = null;
+                    let movementDetected = false;
+                    let eyeAspectRatios = [];
+                    let frameCount = 0;
+                    const minFrames = 5; // Need at least 5 frames
+                    const minMovement = 10; // Minimum pixel movement
+                    let checkLiveness = null;
+
+                    // Set timeout to ensure cleanup
+                    const timeoutId = setTimeout(() => {
+                        if (checkLiveness) {
+                            clearInterval(checkLiveness);
+                            checkLiveness = null;
+                        }
+                        if (frameCount < minFrames) {
+                            resolve({ isLive: false, reason: 'Not enough frames captured. Please ensure your face is visible.' });
+                        } else if (!movementDetected) {
+                            resolve({ isLive: false, reason: 'No face movement detected. Please move your head slightly.' });
+                        } else {
+                            resolve({ isLive: true });
+                        }
+                    }, duration + 500); // Add buffer time
+
+                    checkLiveness = setInterval(async () => {
+                        if (Date.now() - startTime >= duration) {
+                            if (checkLiveness) {
+                                clearInterval(checkLiveness);
+                                checkLiveness = null;
+                            }
+                            clearTimeout(timeoutId);
+                            
+                            // Evaluate liveness
+                            if (frameCount < minFrames) {
+                                resolve({ isLive: false, reason: 'Not enough frames captured. Please ensure your face is visible.' });
+                                return;
+                            }
+
+                            if (!movementDetected) {
+                                resolve({ isLive: false, reason: 'No face movement detected (possible photo/video). Please move your head slightly.' });
+                                return;
+                            }
+
+                            // Check for eye blink variation (indicates live person)
+                            if (eyeAspectRatios.length > 0) {
+                                const earVariance = calculateVariance(eyeAspectRatios);
+                                if (earVariance < 0.001) {
+                                    resolve({ isLive: false, reason: 'No eye movement detected (possible static image). Please blink naturally.' });
+                                    return;
+                                }
+                            }
+
+                            resolve({ isLive: true });
+                            return;
+                        }
+
+                        try {
+                            // Check if video is still playing
+                            if (!video || video.paused || video.ended) {
+                                return;
+                            }
+                            
+                            const detections = await faceapi.detectSingleFace(video, 
+                                new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+                                .withFaceLandmarks();
+
+                            if (detections && detections.detection) {
+                                frameCount++;
+                                const box = detections.detection.box;
+                                const currentPosition = {
+                                    x: box.x + box.width / 2,
+                                    y: box.y + box.height / 2,
+                                    width: box.width,
+                                    height: box.height
+                                };
+
+                                // Check for movement
+                                if (lastFacePosition) {
+                                    const movement = Math.sqrt(
+                                        Math.pow(currentPosition.x - lastFacePosition.x, 2) +
+                                        Math.pow(currentPosition.y - lastFacePosition.y, 2)
+                                    );
+                                    if (movement > minMovement) {
+                                        movementDetected = true;
+                                    }
+                                }
+                                lastFacePosition = currentPosition;
+
+                                // Calculate Eye Aspect Ratio (EAR) for blink detection
+                                const landmarks = detections.landmarks;
+                                if (landmarks && landmarks.positions && landmarks.positions.length >= 68) {
+                                    try {
+                                        const leftEye = [
+                                            landmarks.positions[36], landmarks.positions[37],
+                                            landmarks.positions[38], landmarks.positions[39],
+                                            landmarks.positions[40], landmarks.positions[41]
+                                        ];
+                                        const rightEye = [
+                                            landmarks.positions[42], landmarks.positions[43],
+                                            landmarks.positions[44], landmarks.positions[45],
+                                            landmarks.positions[46], landmarks.positions[47]
+                                        ];
+
+                                        const leftEAR = calculateEAR(leftEye);
+                                        const rightEAR = calculateEAR(rightEye);
+                                        
+                                        // Only add if both eyes detected successfully
+                                        if (leftEAR > 0 && rightEAR > 0) {
+                                            const avgEAR = (leftEAR + rightEAR) / 2;
+                                            eyeAspectRatios.push(avgEAR);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error processing eye landmarks:', error);
+                                    }
+                                }
+
+                                frames.push({
+                                    timestamp: Date.now(),
+                                    position: currentPosition,
+                                    detections: detections
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Liveness check error:', error);
+                            // Don't fail immediately, continue checking
+                            // But if too many errors, fail the check
+                            if (error.message && error.message.includes('face-api')) {
+                                // Face-api specific error, might be model loading issue
+                                clearInterval(checkLiveness);
+                                clearTimeout(timeoutId);
+                                resolve({ isLive: false, reason: 'Face detection error. Please refresh and try again.' });
+                                return;
+                            }
+                        }
+                    }, checkInterval);
+                });
+            }
+
+            // Calculate Eye Aspect Ratio (for blink detection)
+            function calculateEAR(eyePoints) {
+                if (!eyePoints || eyePoints.length < 6) {
+                    return 0;
+                }
+                
+                // Validate all points exist
+                for (let i = 0; i < 6; i++) {
+                    if (!eyePoints[i] || typeof eyePoints[i].x === 'undefined' || typeof eyePoints[i].y === 'undefined') {
+                        return 0;
+                    }
+                }
+                
+                try {
+                    const vertical1 = Math.sqrt(
+                        Math.pow(eyePoints[1].x - eyePoints[5].x, 2) +
+                        Math.pow(eyePoints[1].y - eyePoints[5].y, 2)
+                    );
+                    const vertical2 = Math.sqrt(
+                        Math.pow(eyePoints[2].x - eyePoints[4].x, 2) +
+                        Math.pow(eyePoints[2].y - eyePoints[4].y, 2)
+                    );
+                    const horizontal = Math.sqrt(
+                        Math.pow(eyePoints[0].x - eyePoints[3].x, 2) +
+                        Math.pow(eyePoints[0].y - eyePoints[3].y, 2)
+                    );
+                    
+                    // Prevent division by zero
+                    if (horizontal === 0) {
+                        return 0;
+                    }
+                    
+                    return (vertical1 + vertical2) / (2.0 * horizontal);
+                } catch (error) {
+                    console.error('Error calculating EAR:', error);
+                    return 0;
+                }
+            }
+
+            // Calculate variance
+            function calculateVariance(values) {
+                if (values.length === 0) return 0;
+                const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+                return squareDiffs.reduce((a, b) => a + b, 0) / values.length;
+            }
+
+            // Attendance mark button with liveness detection
             markAttendanceBtn.addEventListener('click', async () => {
-                if (!loggedInUser) { showMessage("Not logged in."); return; }
-                const detections = await faceapi.detectSingleFace(videoAttendance, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-                if (!detections) { showMessage("Face not detected."); return; }
+                if (!loggedInUser) { 
+                    showMessage("Not logged in."); 
+                    return; 
+                }
+
+                // Check if video is available
+                if (!videoAttendance || !videoAttendance.srcObject) {
+                    showMessage("Camera not available. Please ensure camera access is granted.");
+                    return;
+                }
+
+                // Disable button during liveness check
+                markAttendanceBtn.disabled = true;
+                const livenessStatus = document.getElementById('liveness-status');
+                const livenessStatusText = document.getElementById('liveness-status-text');
+                const markAttendanceBtnText = document.getElementById('mark-attendance-btn-text');
+                
+                if (livenessStatus && livenessStatusText) {
+                    livenessStatus.style.display = 'block';
+                    livenessStatusText.textContent = 'Verifying you are live... Please move your head slightly.';
+                }
+                if (markAttendanceBtnText) {
+                    markAttendanceBtnText.textContent = 'Verifying Liveness...';
+                }
+
+                // Perform liveness detection first
+                let livenessResult;
+                try {
+                    livenessResult = await performLivenessCheck(videoAttendance, 3000);
+                } catch (error) {
+                    console.error('Liveness check failed:', error);
+                    markAttendanceBtn.disabled = false;
+                    if (livenessStatus) livenessStatus.style.display = 'none';
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
+                    showMessage('Liveness check encountered an error. Please try again.');
+                    return;
+                }
+                
+                if (livenessStatus) livenessStatus.style.display = 'none';
+                
+                if (!livenessResult.isLive) {
+                    markAttendanceBtn.disabled = false;
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
+                    showMessage(`Liveness check failed: ${livenessResult.reason}. Please ensure you are physically present and move naturally.`);
+                    return;
+                }
+
+                // Liveness passed, now verify face match
+                const detections = await faceapi.detectSingleFace(videoAttendance, 
+                    new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+                    .withFaceLandmarks().withFaceDescriptor();
+                
+                if (!detections) { 
+                    markAttendanceBtn.disabled = false;
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
+                    showMessage("Face not detected."); 
+                    return; 
+                }
 
                 const distance = faceapi.euclideanDistance(detections.descriptor, loggedInUser.descriptor);
 
-                if (distance >= 0.6) { showMessage("Face does not match logged in user."); return; }
+                if (distance >= 0.6) { 
+                    markAttendanceBtn.disabled = false;
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
+                    showMessage("Face does not match logged in user."); 
+                    return; 
+                }
 
-                // Face matched, verify location
-                if (!navigator.geolocation) { showMessage("Geolocation not supported."); return; }
+                // Face matched and liveness verified, now verify location
+                if (!navigator.geolocation) { 
+                    markAttendanceBtn.disabled = false;
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
+                    showMessage("Geolocation not supported."); 
+                    return; 
+                }
+                
                 navigator.geolocation.getCurrentPosition(pos => {
                     const dist = getDistance(pos.coords.latitude, pos.coords.longitude, CLASSROOM_LOCATION.lat, CLASSROOM_LOCATION.lon);
                     if (dist <= RADIUS_METERS) {
                         showMessage("Attendance marked successfully ✅");
+                        markAttendanceBtn.disabled = false;
+                        if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
                         // TODO: Update attendance table dynamically if needed
                     } else {
                         showMessage("Outside classroom ❌ Attendance not marked.");
+                        markAttendanceBtn.disabled = false;
+                        if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
                     }
                 }, err => {
                     showMessage("Location permission denied. Attendance not marked.");
+                    markAttendanceBtn.disabled = false;
+                    if (markAttendanceBtnText) markAttendanceBtnText.textContent = 'Mark Attendance with Face Recognition';
                 });
             });
 
@@ -2569,10 +2926,10 @@
                     const courseEl = document.getElementById('profile-course');
                     const goalsEl = document.getElementById('profile-goals');
                     
-                    if (nameEl) nameEl.value = savedProfile.name || 'student';
-                    if (idEl) idEl.value = savedProfile.id || 'BATCH';
-                    if (emailEl) emailEl.value = savedProfile.email || 'email';
-                    if (courseEl) courseEl.value = savedProfile.course || 'course';
+                    if (nameEl) nameEl.value = savedProfile.name || 'Rahul Sharma';
+                    if (idEl) idEl.value = savedProfile.id || 'CS2021BATCH';
+                    if (emailEl) emailEl.value = savedProfile.email || 'rahul@college.edu';
+                    if (courseEl) courseEl.value = savedProfile.course || 'Computer Science';
                     if (goalsEl) goalsEl.value = savedProfile.goals || '';
                     
                     // Load profile photo if available and update all profile photos
@@ -3200,20 +3557,537 @@
             const showMessage = (msg) => { messageText.textContent = msg; messageBox.classList.remove('hidden'); };
             const hideMessage = () => { messageBox.classList.add('hidden'); };
 
-            // View Users
-            document.getElementById('view-users-btn').addEventListener('click', () => {
-                showMessage('User list displayed.');
-            });
+            // Load data from localStorage
+            function loadUsers() {
+                try {
+                    const data = localStorage.getItem('adminUsers');
+                    if (!data) {
+                        return { students: [], teachers: [] };
+                    }
+                    const parsed = JSON.parse(data);
+                    // Validate structure
+                    if (parsed && typeof parsed === 'object') {
+                        if (!Array.isArray(parsed.students)) parsed.students = [];
+                        if (!Array.isArray(parsed.teachers)) parsed.teachers = [];
+                        return parsed;
+                    }
+                    return { students: [], teachers: [] };
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                    return { students: [], teachers: [] };
+                }
+            }
+
+            function saveUsers(users) {
+                try {
+                    localStorage.setItem('adminUsers', JSON.stringify(users));
+                } catch (error) {
+                    console.error('Error saving users:', error);
+                    showMessage('Error saving users. Storage may be full.');
+                }
+            }
+
+            function loadBatches() {
+                try {
+                    const data = localStorage.getItem('adminBatches');
+                    if (!data) {
+                        return {};
+                    }
+                    const parsed = JSON.parse(data);
+                    // Validate structure
+                    if (parsed && typeof parsed === 'object') {
+                        // Ensure all batch values are arrays
+                        Object.keys(parsed).forEach(key => {
+                            if (!Array.isArray(parsed[key])) {
+                                parsed[key] = [];
+                            }
+                        });
+                        return parsed;
+                    }
+                    return {};
+                } catch (error) {
+                    console.error('Error loading batches:', error);
+                    return {};
+                }
+            }
+
+            function saveBatches(batches) {
+                try {
+                    localStorage.setItem('adminBatches', JSON.stringify(batches));
+                } catch (error) {
+                    console.error('Error saving batches:', error);
+                    showMessage('Error saving batches. Storage may be full.');
+                }
+            }
+
+            // User Management
+            const userTypeSelect = document.getElementById('user-type-select');
+            const emailInputContainer = document.getElementById('email-input-container');
+            const userEmailInput = document.getElementById('user-email-input');
+            const addUserBtn = document.getElementById('add-user-btn');
+
+            // Show/hide email input based on user type selection
+            if (userTypeSelect && emailInputContainer) {
+                userTypeSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        emailInputContainer.style.display = 'block';
+                        if (addUserBtn) addUserBtn.disabled = false;
+                    } else {
+                        emailInputContainer.style.display = 'none';
+                        if (addUserBtn) addUserBtn.disabled = true;
+                    }
+                });
+            }
+
+            // Add user functionality
+            if (addUserBtn && userTypeSelect && userEmailInput) {
+                addUserBtn.addEventListener('click', function() {
+                    const userType = userTypeSelect.value;
+                    const email = userEmailInput.value.trim();
+
+                    if (!userType || !email) {
+                        showMessage('Please select user type and enter email.');
+                        return;
+                    }
+
+                    // Validate email format
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        showMessage('Please enter a valid email address.');
+                        return;
+                    }
+
+                    const users = loadUsers();
+                    const userList = users[userType + 's']; // 'student' -> 'students', 'teacher' -> 'teachers'
+
+                    // Check if email already exists
+                    if (userList.includes(email)) {
+                        showMessage(`${userType.charAt(0).toUpperCase() + userType.slice(1)} with this email already exists.`);
+                        return;
+                    }
+
+                    // Add user
+                    userList.push(email);
+                    saveUsers(users);
+
+                    // Clear inputs
+                    if (userEmailInput) userEmailInput.value = '';
+                    if (userTypeSelect) userTypeSelect.value = '';
+                    if (emailInputContainer) emailInputContainer.style.display = 'none';
+                    if (addUserBtn) addUserBtn.disabled = true;
+
+                    // Refresh display
+                    renderUsers();
+                    renderStudentsForBatch();
+                    showMessage(`${userType.charAt(0).toUpperCase() + userType.slice(1)} added successfully!`);
+                });
+            }
+
+            // Render users list
+            function renderUsers() {
+                const usersList = document.getElementById('users-list');
+                if (!usersList) return;
+
+                try {
+                    const users = loadUsers();
+                    let html = '';
+
+                    if (users.students && users.students.length > 0) {
+                        html += '<div class="mb-4"><h4 class="font-semibold text-purple-400 mb-2">Students</h4>';
+                        users.students.forEach((email, index) => {
+                            html += `<div class="flex items-center justify-between p-2 bg-gray-700 rounded mb-1">
+                                <span class="text-sm">${escapeHtml(email)}</span>
+                                <button class="text-red-400 hover:text-red-300 text-xs remove-user-btn" data-type="student" data-index="${index}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    if (users.teachers && users.teachers.length > 0) {
+                        html += '<div><h4 class="font-semibold text-purple-400 mb-2">Teachers</h4>';
+                        users.teachers.forEach((email, index) => {
+                            html += `<div class="flex items-center justify-between p-2 bg-gray-700 rounded mb-1">
+                                <span class="text-sm">${escapeHtml(email)}</span>
+                                <button class="text-red-400 hover:text-red-300 text-xs remove-user-btn" data-type="teacher" data-index="${index}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
+                        });
+                        html += '</div>';
+                    }
+
+                    if (html === '') {
+                        html = '<p class="text-gray-500 text-sm">No users added yet.</p>';
+                    }
+
+                    usersList.innerHTML = html;
+                    
+                    // Attach event listeners
+                    usersList.querySelectorAll('.remove-user-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const type = this.getAttribute('data-type');
+                            const index = parseInt(this.getAttribute('data-index'));
+                            if (type && !isNaN(index)) {
+                                removeUser(type, index);
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error rendering users:', error);
+                    usersList.innerHTML = '<p class="text-red-400 text-sm">Error loading users.</p>';
+                }
+            }
+
+            // Remove user function (global for onclick)
+            window.removeUser = function(type, index) {
+                try {
+                    const users = loadUsers();
+                    const userList = users[type + 's'];
+                    if (!userList || !Array.isArray(userList)) {
+                        showMessage('Error: Invalid user list.');
+                        return;
+                    }
+                    if (index < 0 || index >= userList.length) {
+                        showMessage('Error: Invalid user index.');
+                        return;
+                    }
+                    const email = userList[index];
+                    userList.splice(index, 1);
+                    saveUsers(users);
+                    renderUsers();
+                    renderStudentsForBatch();
+                    showMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} removed: ${email}`);
+                } catch (error) {
+                    console.error('Error removing user:', error);
+                    showMessage('Error removing user. Please try again.');
+                }
+            };
+
+            // Batch Management
+            const createBatchBtn = document.getElementById('create-batch-btn');
+            const batchSelect = document.getElementById('batch-select');
+            const newBatchNameInput = document.getElementById('new-batch-name-input');
+            const newBatchNameBtn = document.getElementById('new-batch-name-btn');
+            const addToBatchBtn = document.getElementById('add-to-batch-btn');
+            const studentsCheckboxList = document.getElementById('students-checkbox-list');
+            const selectedStudents = document.getElementById('selected-students');
+
+            let selectedStudentEmails = new Set();
+
+            // Create batch button
+            if (createBatchBtn) {
+                createBatchBtn.addEventListener('click', function() {
+                    const batchName = prompt('Enter batch name (e.g., CS2021, ME2022):');
+                    if (batchName && batchName.trim()) {
+                        const batches = loadBatches();
+                        const name = batchName.trim();
+                        if (batches[name]) {
+                            showMessage('Batch with this name already exists.');
+                            return;
+                        }
+                        batches[name] = [];
+                        saveBatches(batches);
+                        renderBatches();
+                        renderBatchSelect();
+                        if (batchSelect) batchSelect.value = name;
+                        showMessage(`Batch "${name}" created successfully!`);
+                    }
+                });
+            }
+
+            // New batch name input toggle
+            if (newBatchNameBtn && newBatchNameInput) {
+                newBatchNameBtn.addEventListener('click', function() {
+                    if (newBatchNameInput.style.display === 'none' || !newBatchNameInput.style.display) {
+                        newBatchNameInput.style.display = 'block';
+                        newBatchNameInput.focus();
+                    } else {
+                        const batchName = newBatchNameInput.value.trim();
+                        if (batchName) {
+                            const batches = loadBatches();
+                            if (batches[batchName]) {
+                                showMessage('Batch with this name already exists.');
+                                return;
+                            }
+                            batches[batchName] = [];
+                            saveBatches(batches);
+                            renderBatches();
+                            renderBatchSelect();
+                            if (batchSelect) batchSelect.value = batchName;
+                            if (newBatchNameInput) {
+                                newBatchNameInput.value = '';
+                                newBatchNameInput.style.display = 'none';
+                            }
+                            showMessage(`Batch "${batchName}" created successfully!`);
+                        }
+                    }
+                });
+            }
+
+            // Render batch select dropdown
+            function renderBatchSelect() {
+                if (!batchSelect) return;
+                try {
+                    const batches = loadBatches();
+                    const batchNames = Object.keys(batches);
+                    batchSelect.innerHTML = '<option value="">-- Select or Create Batch --</option>' +
+                        batchNames.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                } catch (error) {
+                    console.error('Error rendering batch select:', error);
+                    batchSelect.innerHTML = '<option value="">-- Error loading batches --</option>';
+                }
+            }
+
+            // Render students for batch selection
+            function renderStudentsForBatch() {
+                if (!studentsCheckboxList) return;
+                try {
+                    const users = loadUsers();
+                    const students = users.students || [];
+
+                    if (students.length === 0) {
+                        studentsCheckboxList.innerHTML = '<p class="text-gray-500 text-sm">No students available. Add students first.</p>';
+                        return;
+                    }
+
+                    studentsCheckboxList.innerHTML = students.map((email, index) => `
+                        <label class="flex items-center p-2 hover:bg-gray-600 rounded cursor-pointer">
+                            <input type="checkbox" class="student-checkbox mr-2" value="${escapeHtml(email)}" data-index="${index}">
+                            <span class="text-sm">${escapeHtml(email)}</span>
+                        </label>
+                    `).join('');
+
+                    // Attach checkbox listeners
+                    studentsCheckboxList.querySelectorAll('.student-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const email = this.value;
+                            if (this.checked) {
+                                selectedStudentEmails.add(email);
+                            } else {
+                                selectedStudentEmails.delete(email);
+                            }
+                            renderSelectedStudents();
+                            updateAddToBatchButton();
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error rendering students for batch:', error);
+                    studentsCheckboxList.innerHTML = '<p class="text-red-400 text-sm">Error loading students.</p>';
+                }
+            }
+
+            // Render selected students
+            function renderSelectedStudents() {
+                if (!selectedStudents) return;
+                if (selectedStudentEmails.size === 0) {
+                    selectedStudents.innerHTML = '<span class="text-gray-500 text-sm">No students selected</span>';
+                    return;
+                }
+
+                selectedStudents.innerHTML = Array.from(selectedStudentEmails).map(email => {
+                    // Properly escape email for onclick attribute
+                    const safeEmail = escapeHtml(email).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    return `
+                        <span class="bg-green-600 text-white px-3 py-1 rounded-full text-xs flex items-center gap-2" data-email="${escapeHtml(email)}">
+                            ${escapeHtml(email)}
+                            <button class="text-white hover:text-red-200 remove-selected-student-btn" data-email="${escapeHtml(email)}">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                    `;
+                }).join('');
+                
+                // Attach event listeners instead of using onclick
+                selectedStudents.querySelectorAll('.remove-selected-student-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const email = this.getAttribute('data-email');
+                        if (email) {
+                            removeSelectedStudent(email);
+                        }
+                    });
+                });
+            }
+
+            // Remove selected student
+            window.removeSelectedStudent = function(email) {
+                if (!email) return;
+                selectedStudentEmails.delete(email);
+                // Uncheck checkbox - need to escape for querySelector
+                if (studentsCheckboxList) {
+                    const checkboxes = studentsCheckboxList.querySelectorAll('.student-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        if (checkbox.value === email) {
+                            checkbox.checked = false;
+                        }
+                    });
+                }
+                renderSelectedStudents();
+                updateAddToBatchButton();
+            };
+
+            // Update add to batch button state
+            function updateAddToBatchButton() {
+                if (!addToBatchBtn || !batchSelect) return;
+                addToBatchBtn.disabled = !(batchSelect.value && selectedStudentEmails.size > 0);
+            }
+
+            // Batch select change
+            if (batchSelect) {
+                batchSelect.addEventListener('change', function() {
+                    updateAddToBatchButton();
+                });
+            }
+
+            // Add selected students to batch
+            if (addToBatchBtn && batchSelect) {
+                addToBatchBtn.addEventListener('click', function() {
+                    const batchName = batchSelect.value;
+                    if (!batchName) {
+                        showMessage('Please select a batch.');
+                        return;
+                    }
+
+                    if (selectedStudentEmails.size === 0) {
+                        showMessage('Please select at least one student.');
+                        return;
+                    }
+
+                    try {
+                        const batches = loadBatches();
+                        if (!batches[batchName]) {
+                            batches[batchName] = [];
+                        }
+
+                        const emailsToAdd = Array.from(selectedStudentEmails);
+                        let addedCount = 0;
+                        emailsToAdd.forEach(email => {
+                            if (!batches[batchName].includes(email)) {
+                                batches[batchName].push(email);
+                                addedCount++;
+                            }
+                        });
+
+                        if (addedCount === 0) {
+                            showMessage('All selected students are already in this batch.');
+                            return;
+                        }
+
+                        saveBatches(batches);
+                        renderBatches();
+                        selectedStudentEmails.clear();
+                        renderSelectedStudents();
+                        if (studentsCheckboxList) {
+                            studentsCheckboxList.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+                        }
+                        updateAddToBatchButton();
+                        showMessage(`${addedCount} student(s) added to batch "${batchName}"!`);
+                    } catch (error) {
+                        console.error('Error adding students to batch:', error);
+                        showMessage('Error adding students to batch. Please try again.');
+                    }
+                });
+            }
+
+            // Render batches list
+            function renderBatches() {
+                const batchesList = document.getElementById('batches-list');
+                if (!batchesList) return;
+
+                try {
+                    const batches = loadBatches();
+                    const batchNames = Object.keys(batches);
+
+                    if (batchNames.length === 0) {
+                        batchesList.innerHTML = '<p class="text-gray-500 text-sm">No batches created yet.</p>';
+                        return;
+                    }
+
+                    batchesList.innerHTML = batchNames.map(batchName => {
+                        const students = batches[batchName] || [];
+                        // Escape batch name for onclick attribute
+                        const safeBatchName = escapeHtml(batchName).replace(/'/g, "\\'");
+                        return `
+                            <div class="bg-gray-700 p-3 rounded mb-2">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="font-semibold text-green-400">${escapeHtml(batchName)}</h4>
+                                    <button class="text-red-400 hover:text-red-300 text-xs" onclick="removeBatch('${safeBatchName}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <span class="font-semibold">${students.length}</span> student(s)
+                                </div>
+                                <div class="mt-2 text-xs text-gray-400 max-h-20 overflow-y-auto">
+                                    ${students.length > 0 ? students.map(email => `<div>• ${escapeHtml(email)}</div>`).join('') : '<div>No students in this batch</div>'}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (error) {
+                    console.error('Error rendering batches:', error);
+                    batchesList.innerHTML = '<p class="text-red-400 text-sm">Error loading batches.</p>';
+                }
+            }
+
+            // Remove batch function (global for onclick)
+            window.removeBatch = function(batchName) {
+                if (!batchName) return;
+                if (!confirm(`Are you sure you want to delete batch "${batchName}"?`)) {
+                    return;
+                }
+                try {
+                    const batches = loadBatches();
+                    if (!batches[batchName]) {
+                        showMessage('Batch not found.');
+                        return;
+                    }
+                    delete batches[batchName];
+                    saveBatches(batches);
+                    renderBatches();
+                    renderBatchSelect();
+                    // Clear selection if deleted batch was selected
+                    if (batchSelect && batchSelect.value === batchName) {
+                        batchSelect.value = '';
+                        updateAddToBatchButton();
+                    }
+                    showMessage(`Batch "${batchName}" deleted successfully!`);
+                } catch (error) {
+                    console.error('Error removing batch:', error);
+                    showMessage('Error removing batch. Please try again.');
+                }
+            };
+
+            // Helper function to escape HTML
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // Initialize displays
+            renderUsers();
+            renderBatches();
+            renderBatchSelect();
+            renderStudentsForBatch();
 
             // Generate Report
-            document.getElementById('generate-report-btn').addEventListener('click', () => {
-                showMessage('Attendance report generated.');
-            });
+            const generateReportBtn = document.getElementById('generate-report-btn');
+            if (generateReportBtn) {
+                generateReportBtn.addEventListener('click', () => {
+                    showMessage('Attendance report generated.');
+                });
+            }
 
             // Edit Settings
-            document.getElementById('edit-settings-btn').addEventListener('click', () => {
-                showMessage('System settings opened for editing.');
-            });
+            const editSettingsBtn = document.getElementById('edit-settings-btn');
+            if (editSettingsBtn) {
+                editSettingsBtn.addEventListener('click', () => {
+                    showMessage('System settings opened for editing.');
+                });
+            }
         }
 
         // Global functions
@@ -3336,7 +4210,6 @@
 </body>
 
 </html>
-
 
 
 
