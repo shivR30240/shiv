@@ -518,7 +518,7 @@
                             <span class="font-semibold" id="nav-username">User</span>
                             <span class="text-sm text-blue-200" id="nav-class">Computer Science</span>
                         </div>
-                        <img class="h-10 w-10 rounded-full border-2 border-white"
+                        <img id="nav-profile-photo" class="h-10 w-10 rounded-full border-2 border-white object-cover"
                             src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3E%3Cpath d='M12 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0 2c-6.627 0-12 5.373-12 12h24c0-6.627-5.373-12-12-12z'/%3E%3C/svg%3E"
                             alt="Profile">
                         <button class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg transition"
@@ -556,7 +556,7 @@
                 <div class="hidden md:block w-full md:w-1/4 lg:w-1/5">
                     <div class="bg-gray-800 rounded-lg shadow-md p-4 mb-6">
                         <div class="flex flex-col items-center text-center mb-6">
-                            <img class="h-24 w-24 rounded-full mb-4 border-4 border-blue-500"
+                            <img id="sidebar-profile-photo" class="h-24 w-24 rounded-full mb-4 border-4 border-blue-500 object-cover"
                                 src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366F1'%3E%3Cpath d='M12 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0 2c-6.627 0-12 5.373-12 12h24c0-6.627-5.373-12-12-12z'/%3E%3C/svg%3E"
                                 alt="Profile">
                             <h2 class="text-xl font-bold" id="sidebar-username">User</h2>
@@ -1193,17 +1193,18 @@
                                 </div>
 
                                 <div class="mb-6">
-                                    <h3 class="text-lg font-semibold mb-3">Interests</h3>
-                                    <div class="flex flex-wrap gap-2">
-                                        <span class="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm">Web
-                                            Development</span>
-                                        <span class="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm">Machine
-                                            Learning</span>
-                                        <span class="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm">Data
-                                            Structures</span>
-                                        <span
-                                            class="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm">Algorithms</span>
-                                        <button class="text-blue-400 text-sm">+ Add more</button>
+                                    <h3 class="text-lg font-semibold mb-3">Interests & Skills</h3>
+                                    <div class="flex flex-wrap gap-2 mb-3" id="skills-container">
+                                        <!-- Skills will be dynamically added here -->
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" id="new-skill-input" 
+                                            placeholder="Enter a skill or interest"
+                                            class="flex-1 px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <button id="add-skill-btn" 
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                                            <i class="fas fa-plus mr-2"></i>Add Skill
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1464,6 +1465,23 @@
             const CLASSROOM_LOCATION = { lat: 22.681432, lon: 75.879018 };
             const RADIUS_METERS = 50;
 
+            // Function to update all profile photos (defined early for use in login)
+            function updateAllProfilePhotos(imageData) {
+                const profilePhoto = document.getElementById('profile-photo');
+                const navProfilePhoto = document.getElementById('nav-profile-photo');
+                const sidebarProfilePhoto = document.getElementById('sidebar-profile-photo');
+                
+                if (profilePhoto && imageData) {
+                    profilePhoto.src = imageData;
+                }
+                if (navProfilePhoto && imageData) {
+                    navProfilePhoto.src = imageData;
+                }
+                if (sidebarProfilePhoto && imageData) {
+                    sidebarProfilePhoto.src = imageData;
+                }
+            }
+
             // Utility functions
             const showMessage = (msg) => { messageText.textContent = msg; messageBox.classList.remove('hidden'); };
             const hideMessage = () => { messageBox.classList.add('hidden'); };
@@ -1655,6 +1673,16 @@
                 // Update dashboard username
                 const dashboardUsername = document.getElementById('dashboard-username');
                 if (dashboardUsername) dashboardUsername.textContent = username;
+                
+                // Load and update profile photo if available
+                try {
+                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    if (savedProfile.photo) {
+                        updateAllProfilePhotos(savedProfile.photo);
+                    }
+                } catch (e) {
+                    console.error('Error loading profile photo on login:', e);
+                }
 
                 // Face recognized -> verify location
                 if (!navigator.geolocation) { showMessage("Geolocation not supported."); return; }
@@ -1770,6 +1798,11 @@
 
                     if (tabId === 'attendance' && loggedInUser) {
                         startVideo(videoAttendance, canvasAttendance, 'attendance');
+                    }
+                    
+                    // Initialize skills when profile tab is accessed
+                    if (tabId === 'profile') {
+                        setTimeout(initSkills, 100);
                     }
                 });
             });
@@ -2117,7 +2150,7 @@
                                     Room: <span class="editable-room" contenteditable="true">${safeRoom}</span>
                                     ${safeTeacher ? ` • <span class="text-gray-300">${safeTeacher}</span>` : ''}
                                 </p>
-                            </div>
+                        </div>
                             <div class="flex items-center gap-2">
                                 ${statusBadge}
                                 <button class="edit-entry-btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs" title="Save Changes">
@@ -2127,8 +2160,8 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
-                        </div>
-                    `;
+                    </div>
+                `;
                 }).filter(html => html !== '').join('');
 
                 // Attach event listeners
@@ -2344,7 +2377,9 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const imageData = e.target.result;
-                    profilePhoto.src = imageData;
+                    
+                    // Update all profile photos
+                    updateAllProfilePhotos(imageData);
                     
                     // Save to localStorage immediately
                     const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
@@ -2376,23 +2411,153 @@
                 profilePhotoInput.addEventListener('change', handlePhotoChange);
             }
 
+            // ===== Skills Management =====
+            function renderSkills(skills) {
+                const container = document.getElementById('skills-container');
+                if (!container) return;
+                
+                container.innerHTML = skills.map(skill => `
+                    <span class="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm flex items-center gap-2 skill-tag" data-skill="${escapeHtml(skill)}">
+                        ${escapeHtml(skill)}
+                        <button class="remove-skill-btn text-blue-300 hover:text-red-400 transition" data-skill="${escapeHtml(skill)}" title="Remove">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </span>
+                `).join('');
+                
+                // Attach remove event listeners
+                container.querySelectorAll('.remove-skill-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const skillToRemove = this.getAttribute('data-skill');
+                        removeSkill(skillToRemove);
+                    });
+                });
+            }
+
+            function addSkill() {
+                const input = document.getElementById('new-skill-input');
+                if (!input) return;
+                
+                const skill = input.value.trim();
+                if (!skill) {
+                    showMessage('Please enter a skill or interest.');
+                    return;
+                }
+                
+                // Get current skills
+                const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                const currentSkills = savedProfile.skills || [];
+                
+                // Check if skill already exists
+                if (currentSkills.includes(skill)) {
+                    showMessage('This skill is already added.');
+                    input.value = '';
+                    return;
+                }
+                
+                // Add skill
+                currentSkills.push(skill);
+                savedProfile.skills = currentSkills;
+                localStorage.setItem('userProfile', JSON.stringify(savedProfile));
+                
+                // Update UI
+                renderSkills(currentSkills);
+                input.value = '';
+                showMessage('Skill added successfully!');
+            }
+
+            function removeSkill(skill) {
+                const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                const currentSkills = savedProfile.skills || [];
+                
+                // Remove skill
+                const updatedSkills = currentSkills.filter(s => s !== skill);
+                savedProfile.skills = updatedSkills;
+                localStorage.setItem('userProfile', JSON.stringify(savedProfile));
+                
+                // Update UI
+                renderSkills(updatedSkills);
+                showMessage('Skill removed successfully!');
+            }
+
+            // Initialize skills functionality
+            let skillsInitialized = false;
+            function initSkills() {
+                // Prevent duplicate initialization
+                if (skillsInitialized) {
+                    // Just render skills if already initialized
+                    try {
+                        const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                        const skills = savedProfile.skills || ['Web Development', 'Machine Learning', 'Data Structures', 'Algorithms'];
+                        renderSkills(skills);
+                    } catch (e) {
+                        console.error('Error loading skills:', e);
+                        renderSkills(['Web Development', 'Machine Learning', 'Data Structures', 'Algorithms']);
+                    }
+                    return;
+                }
+                
+                const addSkillBtn = document.getElementById('add-skill-btn');
+                const newSkillInput = document.getElementById('new-skill-input');
+                
+                if (addSkillBtn && !addSkillBtn.hasAttribute('data-listener-attached')) {
+                    addSkillBtn.addEventListener('click', addSkill);
+                    addSkillBtn.setAttribute('data-listener-attached', 'true');
+                }
+                
+                if (newSkillInput && !newSkillInput.hasAttribute('data-listener-attached')) {
+                    newSkillInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            addSkill();
+                        }
+                    });
+                    newSkillInput.setAttribute('data-listener-attached', 'true');
+                }
+                
+                // Load existing skills
+                try {
+                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    const skills = savedProfile.skills || ['Web Development', 'Machine Learning', 'Data Structures', 'Algorithms'];
+                    renderSkills(skills);
+                } catch (e) {
+                    console.error('Error loading skills:', e);
+                    // Default skills
+                    renderSkills(['Web Development', 'Machine Learning', 'Data Structures', 'Algorithms']);
+                }
+                
+                skillsInitialized = true;
+            }
+
             // ===== Profile Save =====
-            document.getElementById('saveProfileBtn').addEventListener('click', () => {
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            if (saveProfileBtn) {
+                saveProfileBtn.addEventListener('click', () => {
                 const profilePhotoEl = document.getElementById('profile-photo');
+                const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                
                 const profile = {
                     name: document.getElementById('profile-name').value,
                     id: document.getElementById('profile-id').value,
                     email: document.getElementById('profile-email').value,
                     course: document.getElementById('profile-course').value,
                     goals: document.getElementById('profile-goals').value,
-                    photo: profilePhotoEl ? profilePhotoEl.src : null
+                    photo: profilePhotoEl ? profilePhotoEl.src : null,
+                    skills: savedProfile.skills || [] // Preserve skills
                 };
                 localStorage.setItem('userProfile', JSON.stringify(profile));
+                
                 // Update sidebar if logged in
                 document.getElementById('sidebar-username').textContent = profile.name;
                 document.getElementById('sidebar-id').textContent = profile.id;
+                
+                // Update all profile photos
+                if (profile.photo) {
+                    updateAllProfilePhotos(profile.photo);
+                }
+                
                 showMessage('Profile saved successfully!');
             });
+            }
 
             // Load profile on init (after login, but for demo)
             try {
@@ -2410,17 +2575,43 @@
                     if (courseEl) courseEl.value = savedProfile.course || 'Computer Science';
                     if (goalsEl) goalsEl.value = savedProfile.goals || '';
                     
-                    // Load profile photo if available
-                    if (savedProfile.photo && profilePhoto) {
-                        profilePhoto.src = savedProfile.photo;
+                    // Load profile photo if available and update all profile photos
+                    if (savedProfile.photo) {
+                        updateAllProfilePhotos(savedProfile.photo);
                     }
                 }
             } catch (e) {
                 console.error('Error loading profile:', e);
             }
 
+            // Initialize skills on page load
+            let skillsInitAttempts = 0;
+            const maxSkillsInitAttempts = 10; // Prevent infinite loops
+            function initializeSkillsOnLoad() {
+                // Check if skills container exists
+                const skillsContainer = document.getElementById('skills-container');
+                if (skillsContainer) {
+                    initSkills();
+                } else if (skillsInitAttempts < maxSkillsInitAttempts) {
+                    // If not loaded yet, try again after a short delay
+                    skillsInitAttempts++;
+                    setTimeout(initializeSkillsOnLoad, 500);
+                } else {
+                    console.warn('Skills container not found after multiple attempts');
+                }
+            }
+            
+            // Initialize skills when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeSkillsOnLoad);
+            } else {
+                initializeSkillsOnLoad();
+            }
+
             // ===== Routine Export =====
-            document.getElementById('exportRoutineBtn').addEventListener('click', () => {
+            const exportRoutineBtn = document.getElementById('exportRoutineBtn');
+            if (exportRoutineBtn) {
+                exportRoutineBtn.addEventListener('click', () => {
                 const routineText = `Daily Routine - Monday, 29 September 2025
 7:00 - Morning Routine (Completed)
 9:00 - Data Structures Class (Completed)
@@ -2439,7 +2630,8 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 showMessage('Routine exported!');
-            });
+                });
+            }
 
             // ===== Neon Rescheduler System =====
             /* ===== in-memory ===== */
@@ -3144,7 +3336,6 @@
 </body>
 
 </html>
-
 
 
 
