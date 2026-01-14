@@ -1858,12 +1858,12 @@
                                 return `
                                     <div class="flex items-center p-3 bg-gray-700 rounded-lg">
                                         <div class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded mr-3">${escapeHtml(entry.time || '')}</div>
-                                        <div class="flex-1">
+                        <div class="flex-1">
                                             <div class="font-medium text-white">${escapeHtml(entry.subject || '')}</div>
                                             <div class="text-xs text-gray-400">${escapeHtml(entry.room || '')}${entry.teacher ? ' • ' + escapeHtml(entry.teacher) : ''}</div>
-                                        </div>
+                        </div>
                                         ${entry.status ? `<span class="${statusClass} text-xs px-2 py-1 rounded-full">${escapeHtml(entry.status)}</span>` : ''}
-                                    </div>
+                    </div>
                                 `;
                             }).join('');
                         }
@@ -1919,10 +1919,10 @@
                 const baseTime = Date.now();
                 return {
                     'Mon': [
-                        { id: baseTime, time: '9:00', subject: 'Data Structures', room: 'Room 302', teacher: 'Prof. Sharma', status: 'Completed', borderColor: 'blue' },
-                        { id: baseTime + 1, time: '10:00', subject: 'Algorithms', room: 'Room 305', teacher: 'Prof. Gupta', status: 'In Progress', borderColor: 'blue' },
-                        { id: baseTime + 2, time: '11:00', subject: 'Free Period', room: 'Library', teacher: 'Self Study', status: 'Upcoming', borderColor: 'green' },
-                        { id: baseTime + 3, time: '12:00', subject: 'Lunch Break', room: 'Cafeteria', teacher: '', status: '', borderColor: 'gray' }
+                        { id: baseTime, time: '9:00', subject: 'Data Structures', room: 'Room 302', teacher: 'Prof. Sharma', status: '', borderColor: '' },
+                        { id: baseTime + 1, time: '10:00', subject: 'Algorithms', room: 'Room 305', teacher: 'Prof. Gupta', status: '', borderColor: '' },
+                        { id: baseTime + 2, time: '11:00', subject: 'Free Period', room: 'Library', teacher: 'Self Study', status: '', borderColor: '' },
+                        { id: baseTime + 3, time: '12:00', subject: 'Lunch Break', room: 'Cafeteria', teacher: '', status: '', borderColor: '' }
                     ],
                     'Tue': [],
                     'Wed': [],
@@ -1946,9 +1946,11 @@
 
             function getStatusColors(status) {
                 const colors = {
-                    'Completed': { bg: 'bg-green-800', text: 'text-green-200' },
-                    'In Progress': { bg: 'bg-yellow-800', text: 'text-yellow-200' },
-                    'Upcoming': { bg: 'bg-blue-800', text: 'text-blue-200' },
+                    'Completed': { bg: 'bg-blue-800', text: 'text-blue-200' },
+                    'Ongoing': { bg: 'bg-green-800', text: 'text-green-200' },
+                    'Pending': { bg: 'bg-red-800', text: 'text-red-200' },
+                    'In Progress': { bg: 'bg-yellow-800', text: 'text-yellow-200' }, // Legacy support
+                    'Upcoming': { bg: 'bg-red-800', text: 'text-red-200' }, // Legacy support
                     '': { bg: '', text: '' }
                 };
                 return colors[status] || { bg: 'bg-gray-800', text: 'text-gray-200' };
@@ -1990,6 +1992,79 @@
                 return colors[color] || 'text-blue-200';
             }
 
+            // Determine lecture status and color based on system time
+            function getLectureStatusAndColor(entryTime, day) {
+                const now = new Date();
+                const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                const dayMap = { 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5 };
+                const entryDay = dayMap[day];
+                
+                // Parse time (format: "HH:MM" or "HH:MM AM/PM")
+                function parseTime(timeStr) {
+                    if (!timeStr) return null;
+                    
+                    let time = timeStr.trim();
+                    let hours = 0, minutes = 0;
+                    
+                    // Handle 12-hour format
+                    if (time.includes('AM') || time.includes('PM') || time.includes('am') || time.includes('pm')) {
+                        const parts = time.split(/[:\s]/);
+                        hours = parseInt(parts[0]) || 0;
+                        minutes = parseInt(parts[1]) || 0;
+                        const period = (parts[parts.length - 1] || '').toUpperCase();
+                        
+                        if (period === 'PM' && hours !== 12) hours += 12;
+                        if (period === 'AM' && hours === 12) hours = 0;
+                    } else {
+                        // Handle 24-hour format
+                        const parts = time.split(':');
+                        hours = parseInt(parts[0]) || 0;
+                        minutes = parseInt(parts[1]) || 0;
+                    }
+                    
+                    return { hours, minutes };
+                }
+                
+                const entryTimeObj = parseTime(entryTime);
+                if (!entryTimeObj) {
+                    return { status: 'Pending', color: 'red' };
+                }
+                
+                // Create date objects for comparison
+                const entryDate = new Date();
+                entryDate.setHours(entryTimeObj.hours, entryTimeObj.minutes, 0, 0);
+                
+                // Adjust for day of week (only if viewing today's day)
+                if (entryDay !== undefined && entryDay === currentDay) {
+                    // Same day - compare times directly
+                    // No date adjustment needed
+                } else if (entryDay !== undefined) {
+                    // Different day - calculate day difference
+                    const dayDiff = entryDay - currentDay;
+                    // Handle weekend wrap-around
+                    let adjustedDiff = dayDiff;
+                    if (dayDiff > 3) adjustedDiff = dayDiff - 7; // Next week
+                    if (dayDiff < -3) adjustedDiff = dayDiff + 7; // Last week
+                    entryDate.setDate(entryDate.getDate() + adjustedDiff);
+                }
+                
+                const currentTime = new Date();
+                const lectureEndTime = new Date(entryDate);
+                lectureEndTime.setHours(lectureEndTime.getHours() + 1); // Assume 1 hour lecture duration
+                
+                // Determine status
+                if (currentTime < entryDate) {
+                    // Future lecture - Pending (Red)
+                    return { status: 'Pending', color: 'red' };
+                } else if (currentTime >= entryDate && currentTime <= lectureEndTime) {
+                    // Current lecture - Ongoing (Green)
+                    return { status: 'Ongoing', color: 'green' };
+                } else {
+                    // Past lecture - Completed (Blue)
+                    return { status: 'Completed', color: 'blue' };
+                }
+            }
+
             function renderTimetable(day) {
                 const content = document.getElementById('timetableContent');
                 if (!content) return;
@@ -2012,12 +2087,19 @@
                         return '';
                     }
                     
-                    const statusColors = getStatusColors(entry.status || '');
-                    const borderClass = getBorderColorClass(entry.borderColor || 'blue');
-                    const bgClass = getBgColorClass(entry.borderColor || 'blue');
-                    const textClass = getTextColorClass(entry.borderColor || 'blue');
-                    const statusBadge = entry.status ? 
-                        `<div class="${statusColors.bg} ${statusColors.text} text-xs px-2 py-1 rounded-full">${escapeHtml(entry.status)}</div>` : '';
+                    // Get status and color based on system time
+                    const { status, color } = getLectureStatusAndColor(entry.time, day);
+                    
+                    // Update entry status automatically
+                    entry.status = status;
+                    entry.borderColor = color; // Store for reference but it's auto-calculated
+                    
+                    const statusColors = getStatusColors(status);
+                    const borderClass = getBorderColorClass(color);
+                    const bgClass = getBgColorClass(color);
+                    const textClass = getTextColorClass(color);
+                    const statusBadge = status ? 
+                        `<div class="${statusColors.bg} ${statusColors.text} text-xs px-2 py-1 rounded-full">${escapeHtml(status)}</div>` : '';
 
                     // Escape all user input to prevent XSS
                     const safeTime = escapeHtml(entry.time || '');
@@ -2028,27 +2110,16 @@
 
                     return `
                         <div class="flex items-center p-4 border-l-4 ${borderClass} ${bgClass} rounded-lg timetable-entry" data-id="${entry.id}">
-                            <div class="w-20 ${textClass} font-bold editable-time" contenteditable="true">${safeTime}</div>
+                            <div class="w-20 ${textClass} font-bold">${safeTime}</div>
                             <div class="flex-1 ml-4">
                                 <h3 class="font-semibold editable-subject" contenteditable="true">${safeSubject}</h3>
-                                <p class="text-sm text-gray-400 editable-details" contenteditable="true">${detailsText}</p>
+                                <p class="text-sm text-gray-400">
+                                    Room: <span class="editable-room" contenteditable="true">${safeRoom}</span>
+                                    ${safeTeacher ? ` • <span class="text-gray-300">${safeTeacher}</span>` : ''}
+                                </p>
                             </div>
                             <div class="flex items-center gap-2">
                                 ${statusBadge}
-                                <select class="editable-status bg-gray-700 text-white text-xs px-2 py-1 rounded border border-gray-600">
-                                    <option value="" ${entry.status === '' ? 'selected' : ''}>No Status</option>
-                                    <option value="Upcoming" ${entry.status === 'Upcoming' ? 'selected' : ''}>Upcoming</option>
-                                    <option value="In Progress" ${entry.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="Completed" ${entry.status === 'Completed' ? 'selected' : ''}>Completed</option>
-                                </select>
-                                <select class="editable-color bg-gray-700 text-white text-xs px-2 py-1 rounded border border-gray-600">
-                                    <option value="blue" ${(entry.borderColor || 'blue') === 'blue' ? 'selected' : ''}>Blue</option>
-                                    <option value="green" ${entry.borderColor === 'green' ? 'selected' : ''}>Green</option>
-                                    <option value="yellow" ${entry.borderColor === 'yellow' ? 'selected' : ''}>Yellow</option>
-                                    <option value="red" ${entry.borderColor === 'red' ? 'selected' : ''}>Red</option>
-                                    <option value="purple" ${entry.borderColor === 'purple' ? 'selected' : ''}>Purple</option>
-                                    <option value="gray" ${entry.borderColor === 'gray' ? 'selected' : ''}>Gray</option>
-                                </select>
                                 <button class="edit-entry-btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs" title="Save Changes">
                                     <i class="fas fa-save"></i>
                                 </button>
@@ -2077,31 +2148,15 @@
                     });
                 });
 
-                content.querySelectorAll('.editable-status').forEach(select => {
-                    select.addEventListener('change', function() {
-                        const entryDiv = this.closest('.timetable-entry');
-                        const id = parseInt(entryDiv.dataset.id);
-                        const entry = timetableData[currentDay].find(e => e.id === id);
-                        if (entry) {
-                            entry.status = this.value;
-                            saveTimetableData();
-                            renderTimetable(currentDay);
-                        }
-                    });
-                });
-
-                content.querySelectorAll('.editable-color').forEach(select => {
-                    select.addEventListener('change', function() {
-                        const entryDiv = this.closest('.timetable-entry');
-                        const id = parseInt(entryDiv.dataset.id);
-                        const entry = timetableData[currentDay].find(e => e.id === id);
-                        if (entry) {
-                            entry.borderColor = this.value;
-                            saveTimetableData();
-                            renderTimetable(currentDay);
-                        }
-                    });
-                });
+                // Auto-update timetable every minute to reflect current time
+                if (window.timetableUpdateInterval) {
+                    clearInterval(window.timetableUpdateInterval);
+                }
+                window.timetableUpdateInterval = setInterval(() => {
+                    if (document.getElementById('timetableContent') && !document.getElementById('timetableContent').classList.contains('hidden')) {
+                        renderTimetable(currentDay);
+                    }
+                }, 60000); // Update every minute
             }
 
             function saveEntry(id) {
@@ -2122,27 +2177,19 @@
                     return;
                 }
 
-                const timeEl = entryDiv.querySelector('.editable-time');
                 const subjectEl = entryDiv.querySelector('.editable-subject');
-                const detailsEl = entryDiv.querySelector('.editable-details');
+                const roomEl = entryDiv.querySelector('.editable-room');
 
-                if (!timeEl || !subjectEl || !detailsEl) {
+                if (!subjectEl) {
                     console.error('Required elements not found');
                     return;
                 }
 
-                // Sanitize and save
-                entry.time = timeEl.textContent.trim() || '9:00';
+                // Sanitize and save (only subject and room are editable)
                 entry.subject = subjectEl.textContent.trim() || 'New Subject';
-                
-                const details = detailsEl.textContent.trim();
-                const parts = details.split(' • ');
-                entry.room = parts[0] || '';
-                entry.teacher = parts.length > 1 ? parts[1] : '';
+                entry.room = roomEl ? roomEl.textContent.trim() : entry.room || '';
 
-                // Ensure required fields
-                if (!entry.borderColor) entry.borderColor = 'blue';
-                if (entry.status === undefined) entry.status = '';
+                // Status and color are auto-calculated based on time; do not set them here
 
                 // Save to localStorage
                 saveTimetableData();
@@ -2195,8 +2242,8 @@
                     subject: 'New Subject',
                     room: 'Room',
                     teacher: 'Teacher',
-                    status: 'Upcoming',
-                    borderColor: 'blue'
+                    status: '', // Will be auto-calculated
+                    borderColor: '' // Will be auto-calculated
                 };
                 
                 timetableData[currentDay].push(newEntry);
