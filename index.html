@@ -698,6 +698,30 @@
                                 Home</button>
                         </div>
 
+                        <!-- Batch Selection Screen (after registration) -->
+                        <div id="batch-selection-screen" class="hidden bg-gray-800 p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-semibold text-center mb-6">Select Your Batch</h2>
+                            <p class="text-center text-gray-400 mb-6">Please select the batch you belong to. This will determine your timetable.</p>
+                            
+                            <div class="space-y-4">
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Available Batches</label>
+                                <select id="student-batch-select" 
+                                    class="w-full p-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">-- Select a Batch --</option>
+                                </select>
+                                
+                                <div id="batch-selection-message" class="text-sm text-gray-500 mt-2"></div>
+                                
+                                <button id="confirm-batch-btn"
+                                    class="w-full px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition transform hover:scale-105 shadow-lg disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                    disabled>Confirm and Continue</button>
+                            </div>
+                            
+                            <button onclick="goHome()"
+                                class="mt-4 text-sm text-blue-400 hover:text-blue-300 transition duration-200">&larr;
+                                Back to Home</button>
+                        </div>
+
                         <!-- Loading -->
                         <div id="loading" class="hidden text-center bg-gray-800 p-6 rounded-lg shadow-md">
                             <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg"
@@ -939,7 +963,12 @@
                         <!-- Timetable Tab -->
                         <div id="timetable" class="tab-content">
                             <div class="bg-gray-800 p-6 rounded-lg shadow-md">
-                                <h2 class="text-2xl font-bold mb-4">Weekly Timetable</h2>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-2xl font-bold">Weekly Timetable</h2>
+                                    <div id="timetable-batch-info" class="text-sm text-gray-400">
+                                        <!-- Batch name will be displayed here -->
+                                    </div>
+                                </div>
 
                                 <div class="mb-6 flex justify-between items-center">
                                     <div class="flex space-x-2">
@@ -1658,7 +1687,123 @@
                 if (homeScreen) homeScreen.classList.remove('hidden');
                 if (registerScreen) registerScreen.classList.add('hidden');
                 if (loginScreen) loginScreen.classList.add('hidden');
+                const batchSelectionScreen = document.getElementById('batch-selection-screen');
+                if (batchSelectionScreen) batchSelectionScreen.classList.add('hidden');
             };
+            
+            // Show batch selection screen
+            function showBatchSelection() {
+                stopAllVideo();
+                const registerScreen = document.getElementById('register-screen');
+                const batchSelectionScreen = document.getElementById('batch-selection-screen');
+                const homeScreen = document.getElementById('home-screen');
+                
+                if (registerScreen) registerScreen.classList.add('hidden');
+                if (homeScreen) homeScreen.classList.add('hidden');
+                if (batchSelectionScreen) {
+                    batchSelectionScreen.classList.remove('hidden');
+                    loadBatchesForSelection();
+                }
+            }
+            
+            // Load batches for student selection
+            function loadBatchesForSelection() {
+                const batchSelect = document.getElementById('student-batch-select');
+                const confirmBtn = document.getElementById('confirm-batch-btn');
+                const messageEl = document.getElementById('batch-selection-message');
+                
+                if (!batchSelect) return;
+                
+                try {
+                    const batches = JSON.parse(localStorage.getItem('adminBatches') || '{}');
+                    const batchNames = Object.keys(batches).filter(name => name && name.trim() !== '');
+                    
+                    batchSelect.innerHTML = '<option value="">-- Select a Batch --</option>';
+                    
+                    if (batchNames.length === 0) {
+                        batchSelect.innerHTML += '<option value="" disabled>No batches available. Please contact admin.</option>';
+                        if (messageEl) messageEl.textContent = 'No batches have been created yet. Please contact your administrator.';
+                        if (confirmBtn) confirmBtn.disabled = true;
+                    } else {
+                        batchNames.forEach(batchName => {
+                            const option = document.createElement('option');
+                            option.value = batchName;
+                            option.textContent = batchName;
+                            batchSelect.appendChild(option);
+                        });
+                        if (messageEl) messageEl.textContent = `Found ${batchNames.length} batch(es). Please select one.`;
+                    }
+                } catch (e) {
+                    console.error('Error loading batches:', e);
+                    batchSelect.innerHTML = '<option value="">Error loading batches</option>';
+                    if (messageEl) messageEl.textContent = 'Error loading batches. Please try again.';
+                    if (confirmBtn) confirmBtn.disabled = true;
+                }
+            }
+            
+            // Handle batch selection change
+            const studentBatchSelect = document.getElementById('student-batch-select');
+            const confirmBatchBtn = document.getElementById('confirm-batch-btn');
+            
+            if (studentBatchSelect && confirmBatchBtn) {
+                studentBatchSelect.addEventListener('change', function() {
+                    confirmBatchBtn.disabled = !this.value || this.value.trim() === '';
+                });
+                
+                confirmBatchBtn.addEventListener('click', function() {
+                    const selectedBatch = studentBatchSelect.value;
+                    if (!selectedBatch || selectedBatch.trim() === '') {
+                        showMessage('Please select a batch.', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        // Save batch to userProfile
+                        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                        userProfile.batch = selectedBatch;
+                        userProfile.id = selectedBatch; // Also save as id for legacy support
+                        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                        
+                        // Also add username to the batch's email list if not already present
+                        const batches = JSON.parse(localStorage.getItem('adminBatches') || '{}');
+                        if (batches[selectedBatch] && Array.isArray(batches[selectedBatch])) {
+                            const username = userProfile.username || userProfile.name || '';
+                            if (username && !batches[selectedBatch].includes(username)) {
+                                batches[selectedBatch].push(username);
+                                localStorage.setItem('adminBatches', JSON.stringify(batches));
+                            }
+                        }
+                        
+                        showMessage(`Batch "${selectedBatch}" selected successfully!`);
+                        
+                        // Hide batch selection screen
+                        const batchSelectionScreen = document.getElementById('batch-selection-screen');
+                        if (batchSelectionScreen) batchSelectionScreen.classList.add('hidden');
+                        
+                        // Show dashboard
+                        const authScreens = document.getElementById('auth-screens');
+                        const dashboardContent = document.getElementById('dashboard-content');
+                        if (authScreens) authScreens.classList.add('hidden');
+                        if (dashboardContent) {
+                            dashboardContent.classList.remove('hidden');
+                            // Initialize dashboard
+                            if (typeof initializeDashboard === 'function') {
+                                initializeDashboard();
+                            }
+                            // Initialize timetable to show the selected batch
+                            if (typeof initTimetable === 'function') {
+                                initTimetable();
+                            } else if (typeof renderTimetable === 'function') {
+                                // If initTimetable not available, just render
+                                renderTimetable('Mon');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error saving batch selection:', e);
+                        showMessage('Error saving batch selection. Please try again.', 'error');
+                    }
+                });
+            }
 
 
             window.showRegister = () => {
@@ -1811,8 +1956,21 @@
                 if (detections) {
                     registeredUsers[username] = { descriptor: Array.from(detections.descriptor) };
                     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-                    showMessage("Registration successful!");
-                    goHome();
+                    
+                    // Save username to userProfile
+                    try {
+                        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                        userProfile.username = username;
+                        userProfile.name = username;
+                        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                    } catch (e) {
+                        console.error('Error saving user profile:', e);
+                    }
+                    
+                    showMessage("Registration successful! Please select your batch.");
+                    
+                    // Show batch selection screen
+                    showBatchSelection();
                 } else showMessage("Face not detected. Try again.");
             });
 
@@ -2309,6 +2467,27 @@
                         startVideo(videoAttendance, canvasAttendance, 'attendance');
                     }
                     
+                    // Refresh timetable when timetable tab is accessed
+                    if (tabId === 'timetable') {
+                        // Update batch info and refresh timetable
+                        if (typeof updateTimetableBatchInfo === 'function') {
+                            updateTimetableBatchInfo();
+                        }
+                        if (typeof renderTimetable === 'function') {
+                            // Get current day or default to Monday
+                            let currentDay = 'Mon';
+                            const activeDayBtn = document.querySelector('#timetable button.bg-blue-700[onclick*="changeDay"]');
+                            if (activeDayBtn) {
+                                const onclickAttr = activeDayBtn.getAttribute('onclick');
+                                const match = onclickAttr ? onclickAttr.match(/changeDay\('(\w+)'\)/) : null;
+                                if (match && match[1] && ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(match[1])) {
+                                    currentDay = match[1];
+                                }
+                            }
+                            renderTimetable(currentDay);
+                        }
+                    }
+                    
                     // Initialize skills when profile tab is accessed
                     if (tabId === 'profile') {
                         setTimeout(initSkills, 100);
@@ -2438,39 +2617,44 @@
 
             // Load timetable data from batch-specific timetables (read-only for students)
             function loadTimetableData() {
-                // Get student's email from profile
+                // Get student's email and username from profile
                 let studentEmail = null;
+                let studentUsername = null;
                 try {
                     const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
                     studentEmail = savedProfile.email || null;
+                    studentUsername = savedProfile.username || savedProfile.name || null;
                 } catch (e) {
                     console.error('Error loading profile:', e);
                 }
 
                 // Find which batch the student belongs to
                 let studentBatch = null;
-                if (studentEmail) {
+                
+                // First, try to get batch directly from profile (set during registration)
+                try {
+                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    studentBatch = savedProfile.batch || savedProfile.id || null;
+                } catch (e) {
+                    // Ignore
+                }
+                
+                // If no batch in profile, try to find by email or username in batch lists
+                if (!studentBatch) {
                     try {
                         const batches = JSON.parse(localStorage.getItem('adminBatches') || '{}');
-                        // Find batch that contains this student's email
+                        // Find batch that contains this student's email or username
                         for (const [batchName, emails] of Object.entries(batches)) {
-                            if (Array.isArray(emails) && emails.includes(studentEmail)) {
-                                studentBatch = batchName;
-                                break;
+                            if (Array.isArray(emails)) {
+                                if ((studentEmail && emails.includes(studentEmail)) || 
+                                    (studentUsername && emails.includes(studentUsername))) {
+                                    studentBatch = batchName;
+                                    break;
+                                }
                             }
                         }
                     } catch (e) {
                         console.error('Error loading batches:', e);
-                    }
-                }
-
-                // If no batch found, try to get from profile id field (legacy support)
-                if (!studentBatch) {
-                    try {
-                        const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                        studentBatch = savedProfile.id || savedProfile.batch || null;
-                    } catch (e) {
-                        // Ignore
                     }
                 }
 
@@ -2662,6 +2846,9 @@
                 const content = document.getElementById('timetableContent');
                 if (!content) return;
                 
+                // Update batch info display
+                updateTimetableBatchInfo();
+                
                 // Reload timetable data to get latest from batch
                 timetableData = loadTimetableData();
                 
@@ -2673,7 +2860,19 @@
                 const entries = timetableData[day] || [];
                 
                 if (entries.length === 0) {
-                    content.innerHTML = '<div class="text-center text-gray-400 py-8">No timetable entries for this day. Please contact your admin.</div>';
+                    // Check if batch is assigned
+                    try {
+                        const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                        const studentBatch = savedProfile.batch || savedProfile.id || null;
+                        
+                        if (!studentBatch) {
+                            content.innerHTML = '<div class="text-center text-gray-400 py-8"><p class="mb-2">No batch assigned.</p><p class="text-sm">Please select a batch during registration or contact your admin.</p></div>';
+                        } else {
+                            content.innerHTML = `<div class="text-center text-gray-400 py-8"><p class="mb-2">No timetable entries for ${day}.</p><p class="text-sm">Batch: <span class="text-blue-400">${escapeHtml(studentBatch)}</span></p><p class="text-sm mt-2">Please contact your admin to set up the timetable.</p></div>`;
+                        }
+                    } catch (e) {
+                        content.innerHTML = '<div class="text-center text-gray-400 py-8">No timetable entries for this day. Please contact your admin.</div>';
+                    }
                     return;
                 }
 
@@ -3131,6 +3330,26 @@
             }
 
             // Initialize timetable
+            // Update timetable batch info display
+            function updateTimetableBatchInfo() {
+                const batchInfoEl = document.getElementById('timetable-batch-info');
+                if (!batchInfoEl) return;
+                
+                try {
+                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    const studentBatch = savedProfile.batch || savedProfile.id || null;
+                    
+                    if (studentBatch) {
+                        batchInfoEl.innerHTML = `<span class="text-blue-400 font-medium">Batch: <span class="text-white">${escapeHtml(studentBatch)}</span></span>`;
+                    } else {
+                        batchInfoEl.innerHTML = '<span class="text-yellow-400">No batch assigned</span>';
+                    }
+                } catch (e) {
+                    console.error('Error updating batch info:', e);
+                    batchInfoEl.innerHTML = '';
+                }
+            }
+
             function initTimetable() {
                 const addBtn = document.getElementById('addTimetableEntry');
                 // Hide "Add Entry" button for students - timetable is read-only
@@ -3143,6 +3362,9 @@
                 if (exportPdfBtn) {
                     exportPdfBtn.addEventListener('click', exportTimetableToPDF);
                 }
+                
+                // Update batch info
+                updateTimetableBatchInfo();
                 
                 // Initialize with Monday
                 if (document.getElementById('timetableContent')) {
